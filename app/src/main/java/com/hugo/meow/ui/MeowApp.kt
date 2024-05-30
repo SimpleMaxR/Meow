@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -128,10 +130,14 @@ fun MarsTopAppBar(modifier: Modifier = Modifier) {
     CenterAlignedTopAppBar(
         title = {
             Text(
-                text = "Meow",
+                text = "Meow 🐱",
                 style = MaterialTheme.typography.headlineSmall,
             )
         },
+        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onPrimary
+        ),
         modifier = modifier.background(color = Color.Blue)
     )
 }

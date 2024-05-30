@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
                 ) {
                     MeowApp(meowViewModel)
                 }
