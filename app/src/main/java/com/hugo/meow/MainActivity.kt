@@ -13,13 +13,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.hugo.imagepreviewer.utils.AppDatabase
+import com.hugo.meow.data.NetworkService
 import com.hugo.meow.ui.MeowApp
+import com.hugo.meow.ui.MeowViewModel
 import com.hugo.meow.ui.theme.MeowTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val database = AppDatabase.getDatabase(this)
+        val networkService = NetworkService(database)
+        val meowViewModel = MeowViewModel(networkService, database)
         setContent {
             MeowTheme {
                 Surface(
@@ -27,7 +33,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    MeowApp()
+                    MeowApp(networkService, meowViewModel)
                 }
             }
         }
@@ -35,16 +41,16 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun GreetingPreview() {
-    MeowTheme {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            MeowApp()
-        }
-    }
-}
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun GreetingPreview() {
+//    MeowTheme {
+//        Surface(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(16.dp)
+//        ) {
+//            MeowApp()
+//        }
+//    }
+//}
