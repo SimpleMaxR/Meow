@@ -9,8 +9,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.File
+import java.io.FileOutputStream
 
-class NetworkService(private val database: AppDatabase) {
+class NetworkService(
+    private val database: AppDatabase,
+    private val appContext: android.content.Context
+) {
     private val client: OkHttpClient = OkHttpClient().newBuilder().build()
 
     suspend fun getMeowPicture(count: Int): List<MeowPicture> {
@@ -51,6 +56,24 @@ class NetworkService(private val database: AppDatabase) {
                     Log.e("request", "error: ${response.code}")
                     throw Exception("Error: ${response.code}")
                 }
+            }
+        }
+    }
+
+    suspend fun downloadImage(url: String, fileName: String): File? {
+        return withContext(Dispatchers.IO) {
+            val request = Request.Builder().url(url).build()
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val file = File(appContext.cacheDir, fileName)
+                val inputStream = response.body?.byteStream()
+                val outputStream = FileOutputStream(file)
+                inputStream?.copyTo(outputStream)
+                outputStream.close()
+                inputStream?.close()
+                file
+            } else {
+                null
             }
         }
     }

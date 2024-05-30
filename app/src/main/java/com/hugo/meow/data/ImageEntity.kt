@@ -24,4 +24,29 @@ interface ImageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(images: List<ImageEntity>)
 
+    @Query("DELETE From meow_images")
+    suspend fun deleteAllSync()
+
+    @Query("DELETE From meow_images")
+    fun deleteAll()
+}
+
+@Entity(tableName = "local_meow_images")
+data class LocalImageEntity(
+    @PrimaryKey val id: String,
+    val path: String,
+    val width: Int,
+    val height: Int
+)
+
+@Dao
+interface LocalImageDao {
+    @Query("SELECT * From local_meow_images")
+    suspend fun getAll(): List<LocalImageEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(images: List<LocalImageEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(images: LocalImageEntity)
 }

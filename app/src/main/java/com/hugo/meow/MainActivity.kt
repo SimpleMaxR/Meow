@@ -1,5 +1,6 @@
 package com.hugo.meow
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -24,7 +25,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val database = AppDatabase.getDatabase(this)
-        val networkService = NetworkService(database)
+        val networkService = NetworkService(database, applicationContext)
         val meowViewModel = MeowViewModel(networkService, database)
         setContent {
             MeowTheme {
@@ -33,24 +34,9 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .padding(16.dp)
                 ) {
-                    MeowApp(networkService, meowViewModel)
+                    MeowApp(meowViewModel)
                 }
             }
         }
     }
 }
-
-
-//@Preview(showBackground = true, showSystemUi = true)
-//@Composable
-//fun GreetingPreview() {
-//    MeowTheme {
-//        Surface(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .padding(16.dp)
-//        ) {
-//            MeowApp()
-//        }
-//    }
-//}

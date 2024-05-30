@@ -82,6 +82,9 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     annotationProcessor("androidx.room:room-compiler:2.6.1")
 
-//    // To use Kotlin Symbol Processing (KSP)
+    // To use Kotlin Symbol Processing (KSP)
     ksp("androidx.room:room-compiler:2.6.1")
+
+    // coli 展示图片
+    implementation("io.coil-kt:coil:2.6.0")
 }
