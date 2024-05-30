@@ -8,8 +8,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
 import androidx.room.Query
 
-@Entity(tableName = "meow_images")
-data class ImageEntity(
+@Entity(tableName = "meow_download")
+data class DownloadRecordEntity(
     @PrimaryKey val id: String,
     val url: String,
     val width: Int,
@@ -17,17 +17,17 @@ data class ImageEntity(
 )
 
 @Dao
-interface ImageDao {
-    @Query("SELECT * From meow_images")
-    suspend fun getAll(): List<ImageEntity>
+interface DownloadRecordDao {
+    @Query("SELECT * From meow_download")
+    suspend fun getAll(): List<DownloadRecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(images: List<ImageEntity>)
+    suspend fun insertAll(images: List<DownloadRecordEntity>)
 
-    @Query("DELETE From meow_images")
+    @Query("DELETE From meow_download")
     suspend fun deleteAllSync()
 
-    @Query("DELETE From meow_images")
+    @Query("DELETE From meow_download")
     fun deleteAll()
 }
 
@@ -49,4 +49,7 @@ interface LocalImageDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(images: LocalImageEntity)
+
+    @Query("DELETE From local_meow_images")
+    suspend fun deleteAllSync()
 }

@@ -8,7 +8,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MeowPicture(
     val id: String,
-    val url: String,
+    @SerialName("url")
+    val path: String,
     val width: Int,
     val height: Int,
 )

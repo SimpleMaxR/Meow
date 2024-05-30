@@ -2,7 +2,6 @@ package com.hugo.meow.data
 
 import android.util.Log
 import com.hugo.imagepreviewer.utils.AppDatabase
-import com.hugo.imagepreviewer.utils.ImageEntity
 import com.hugo.meow.model.MeowPicture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -18,10 +17,13 @@ class NetworkService(
 ) {
     private val client: OkHttpClient = OkHttpClient().newBuilder().build()
 
+    /**
+     * 获取图片列表，包含图片地址和信息，返回 List<MeowPicture>
+     */
     suspend fun getMeowPicture(count: Int): List<MeowPicture> {
         return withContext(Dispatchers.IO) {
             val request = Request.Builder()
-                .url("https://api.thecatapi.com/v1/images/search?limit=$count")
+                .url("https://api.thecatapi.com/v1/images/search?limit=$count&api_key=live_qpcpqD9WFsTXjfffwQxA0YEs4CNbInpvnB9zDDITvvLpXeJejdT6GwNph7YGl63F")
                 .build()
 
             // 执行请求并获取响应
@@ -32,19 +34,11 @@ class NetworkService(
                     val responseBody = response.body?.string()
                     if (responseBody != null) {
                         // 解析 JSON 字符串为 List<MeowPicture>
-                        val decodeRes = Json.decodeFromString<List<MeowPicture>>(responseBody)
-                        Log.i("request", "$decodeRes")
-
-                        // Insert the fetched images into the database
-                        val imageEntities = decodeRes.map { meowPicture ->
-                            ImageEntity(
-                                id = meowPicture.id,
-                                url = meowPicture.url,
-                                width = meowPicture.width,
-                                height = meowPicture.height
+                        val decodeRes =
+                            Json { ignoreUnknownKeys = true }.decodeFromString<List<MeowPicture>>(
+                                responseBody
                             )
-                        }
-                        database.imageDao().insertAll(imageEntities)
+                        Log.i("request", "$decodeRes")
                         return@withContext decodeRes
                     } else {
                         // 处理响应体为空的情况
@@ -60,7 +54,11 @@ class NetworkService(
         }
     }
 
+    /**
+     * 从指定 url 下载图片保存到 cacheDir，以 File 格式返回储存成功的文件信息
+     */
     suspend fun downloadImage(url: String, fileName: String): File? {
+        Log.d("Network", "Start download $fileName from $url")
         return withContext(Dispatchers.IO) {
             val request = Request.Builder().url(url).build()
             val response = client.newCall(request).execute()
@@ -75,6 +73,21 @@ class NetworkService(
             } else {
                 null
             }
+        }
+    }
+
+    /**
+     * 清除 cacheDir 所有文件
+     */
+    suspend fun clearCacheDir() {
+        withContext(Dispatchers.IO) {
+            val cacheDir = appContext.cacheDir
+            cacheDir.listFiles()?.forEach { file ->
+                if (file.isFile) {
+                    file.delete()
+                }
+            }
+            Log.d("Network", "Cache directory cleared")
         }
     }
 }

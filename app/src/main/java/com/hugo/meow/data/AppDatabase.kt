@@ -1,14 +1,13 @@
 package com.hugo.imagepreviewer.utils
 
 import android.content.Context
-import android.media.Image
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [ImageEntity::class, LocalImageEntity::class], version = 1)
+@Database(entities = [DownloadRecordEntity::class, LocalImageEntity::class], version = 1)
 abstract class AppDatabase : RoomDatabase() {
-    abstract fun imageDao(): ImageDao
+    abstract fun downloadRecordDao(): DownloadRecordDao
     abstract fun localImageDao(): LocalImageDao
 
     companion object {

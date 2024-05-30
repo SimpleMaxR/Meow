@@ -8,11 +8,11 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hugo.imagepreviewer.utils.AppDatabase
-import com.hugo.imagepreviewer.utils.ImageEntity
 import com.hugo.imagepreviewer.utils.LocalImageEntity
 import com.hugo.meow.data.NetworkService
 import com.hugo.meow.model.MeowPicture
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 
 
@@ -37,14 +37,8 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
 
     private val myService = service
 
-
-    private fun meowPicToImageEntity(meowPic: MeowPicture): ImageEntity {
-        return ImageEntity(
-            id = meowPic.id,
-            url = meowPic.url,
-            width = meowPic.width,
-            height = meowPic.height,
-        )
+    init {
+        meowUiState = MeowUiState.Success
     }
 
     /**
@@ -53,30 +47,39 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     private fun getMeowPhotos() = viewModelScope.async {
         meowUiState = MeowUiState.Loading
         try {
-            val listResult = myService.getMeowPicture(5)
-            database.imageDao()
-                .insertAll(listResult.map { meowPic -> meowPicToImageEntity(meowPic) }) // 插入数据库
-            for (meowPicture in listResult) {
-                // 下载图片, 将路径存入数据库
-                val image = myService.downloadImage(meowPicture.url, meowPicture.id)
-                if (image != null) {
-                    database.localImageDao().insert(
-                        LocalImageEntity(
-                            id = image.name,
-                            path = image.absolutePath,
-                            width = meowPicture.width,
-                            height = meowPicture.height
+            val listResult = myService.getMeowPicture(10)
+//            database.imageDao().insertAll(listResult.map { meowPic -> meowPicToImageEntity(meowPic) }) // 插入数据库
+            meowUiState = MeowUiState.Success
+            val downloadJob = listResult.map { listItem ->
+                async {
+                    val image = myService.downloadImage(listItem.path, listItem.id)
+                    if (image != null) {
+                        database.localImageDao().insert(
+                            LocalImageEntity(
+                                id = image.name,
+                                path = image.absolutePath,
+                                width = listItem.width,
+                                height = listItem.height
+                            )
                         )
-                    )
+                        // 构建一个 meowPicture 并添加到 meowPics
+                        val meowPic = MeowPicture(
+                            id = listItem.id,
+                            path = image.absolutePath,
+                            width = listItem.width,
+                            height = listItem.height,
+                        )
+                        meowPics = meowPics + meowPic
+                        Log.d("viewModel", "meowPics update $meowPics")
+                    }
                 }
             }
-            loadingStatus.postValue(listResult.toString())
+            downloadJob.awaitAll()
             Log.d("viewModel", "getMeowPhotos try success")
-            MeowUiState.Success
             listResult
         } catch (e: Exception) {
             Log.e("viewModel", "getMeowPhotos try fail cuz $e")
-            MeowUiState.Error
+            meowUiState = MeowUiState.Error
             emptyList<MeowPicture>()
         }
     }
@@ -85,9 +88,12 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     /**
      * 清除数据库所有图片资料
      */
-    private fun CleanDatabase() = viewModelScope.async {
+    fun CleanDatabase() {
         viewModelScope.launch {
-            database.imageDao().deleteAllSync() // 先清除旧记录（for debug)
+            database.downloadRecordDao().deleteAllSync() // 删除下载记录
+            database.localImageDao().deleteAllSync() // 删除本地图片记录
+            myService.clearCacheDir() // 清空文件
+            meowPics = emptyList<MeowPicture>()
             Log.d("viewModel", "Deleted all")
         }
     }
@@ -95,29 +101,29 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     /**
      * 从数据库加载所有图片,透过 [meowPics] 暴露给 UI
      */
-    private fun loadAllPhotos() = viewModelScope.async {
-        viewModelScope.launch {
-            meowUiState = MeowUiState.Loading
-            meowUiState = try {
-
-                val images = database.imageDao().getAll()
-                val meowPictures = images.map { imageEntity ->
-                    MeowPicture(
-                        id = imageEntity.id,
-                        url = imageEntity.url,
-                        width = imageEntity.width,
-                        height = imageEntity.height
-                    )
-                }
-                Log.d("viewModel", "loadAllPhotos try success")
-                meowPics = meowPictures
-                MeowUiState.Success
-            } catch (e: Exception) {
-                Log.e("viewModel", "Failed to load photos from database: $e")
-                MeowUiState.Error
-            }
-        }
-    }
+//    private fun loadAllPhotos() = viewModelScope.async {
+//        viewModelScope.launch {
+//            meowUiState = MeowUiState.Loading
+//            meowUiState = try {
+//
+//                val images = database.imageDao().getAll()
+//                val meowPictures = images.map { imageEntity ->
+//                    MeowPicture(
+//                        id = imageEntity.id,
+//                        path = imageEntity.url,
+//                        width = imageEntity.width,
+//                        height = imageEntity.height
+//                    )
+//                }
+//                Log.d("viewModel", "loadAllPhotos try success")
+//                meowPics = meowPictures
+//                MeowUiState.Success
+//            } catch (e: Exception) {
+//                Log.e("viewModel", "Failed to load photos from database: $e")
+//                MeowUiState.Error
+//            }
+//        }
+//    }
 
     fun loadAllPhotosFromLocal() {
         viewModelScope.launch {
@@ -130,7 +136,7 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
                 val meowPictures = localImages.map { localImageEntity ->
                     MeowPicture(
                         id = localImageEntity.id,
-                        url = localImageEntity.path,
+                        path = localImageEntity.path,
                         width = localImageEntity.width,
                         height = localImageEntity.height
                     )
@@ -152,19 +158,35 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
      */
     fun getMeowPhotosAndLoadAll() {
         viewModelScope.launch {
-//            // 清理现有储存，避免一次请求太多
-//            CleanDatabase().await()
+            // 清理现有储存，避免一次请求太多
+            CleanDatabase()
             // 获取图片列表，然后下载到本地，并记录到数据库
             val pictures = getMeowPhotos().await()
-            pictures.forEach { picture ->
-                val file = myService.downloadImage(picture.url, "${picture.id}.jpg")
-                if (file != null) {
-                    Log.d("MeowViewModel", "Image downloaded: ${file.absolutePath}")
-                } else {
-                    Log.e("MeowViewModel", "Failed to download image: ${picture.url}")
-                }
-            }
-            loadAllPhotos().await()
+
+//            pictures.forEach { picture ->
+//                val file = myService.downloadImage(picture.url, "${picture.id}.jpg")
+//                if (file != null) {
+//                    Log.d("MeowViewModel", "Image downloaded: ${file.absolutePath}")
+//                } else {
+//                    Log.e("MeowViewModel", "Failed to download image: ${picture.url}")
+//                }
+//            }
+
+
+//            // 使用 async 并行下载图片
+//            val asyncDownload = pictures.map{picture ->
+//                async {
+//                    val file = myService.downloadImage(picture.url, "${picture.id}.jpg")
+//                    if (file != null) {
+//                        Log.d("MeowViewModel", "Image downloaded: ${file.absolutePath}")
+//                    } else {
+//                        Log.e("MeowViewModel", "Failed to download image: ${picture.url}")
+//                    }
+//                }
+//            }
+//            asyncDownload.awaitAll()
+
+//            loadAllPhotos().await()
         }
     }
 }

@@ -1,28 +1,36 @@
 package com.hugo.meow.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.hugo.meow.data.NetworkService
 import com.hugo.meow.model.MeowPicture
 
 @Composable
@@ -39,10 +47,7 @@ fun MeowApp(meowViewModel: MeowViewModel) {
             color = MaterialTheme.colorScheme.background
         ) {
             HomeScreen(
-                meowUiState = meowViewModel.meowUiState,
-                meowPics = meowViewModel.meowPics,
-                onRefresh = { meowViewModel.getMeowPhotosAndLoadAll() },
-                onLoadLocal = { meowViewModel.loadAllPhotosFromLocal() }
+                viewModel = meowViewModel
             )
         }
     }
@@ -51,25 +56,33 @@ fun MeowApp(meowViewModel: MeowViewModel) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HomeScreen(
-    meowUiState: MeowUiState,
-    meowPics: List<MeowPicture>,
-    onRefresh: () -> Unit,
-    onLoadLocal: () -> Unit
+    viewModel: MeowViewModel
 ) {
+    val meowUiState = viewModel.meowUiState
+    val meowPics = viewModel.meowPics
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.Start
     ) {
-        Button(onClick = { onRefresh() }) {
-            Text(text = "Refresh")
+        Column {
+            Button(onClick = { viewModel.getMeowPhotosAndLoadAll() }) {
+                Text(text = "Refresh")
+            }
+            Row() {
+                Button(onClick = { viewModel.loadAllPhotosFromLocal() }) {
+                    Text(text = "Load from Local")
+                }
+                Button(onClick = { viewModel.CleanDatabase() }) {
+                    Text(text = "Clean！！！！")
+                }
+            }
         }
-        Button(onClick = { onLoadLocal() }) {
-            Text(text = "Load from Local")
-        }
-        // 这里可以添加显示图片的代码，例如 LazyColumn 或 LazyRow
+
+        // 根据 [meowUiState] 的状态切换不同显示内容
         when (meowUiState) {
             is MeowUiState.Loading -> {
                 CircularProgressIndicator()
@@ -85,7 +98,7 @@ fun HomeScreen(
                     items(meowPics) { meowPicture ->
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(meowPicture.url)
+                                .data(meowPicture.path)
                                 .crossfade(true)
                                 .build(),
                             contentDescription = meowPicture.id,
@@ -119,6 +132,6 @@ fun MarsTopAppBar(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.headlineSmall,
             )
         },
-        modifier = modifier
+        modifier = modifier.background(color = Color.Blue)
     )
 }
