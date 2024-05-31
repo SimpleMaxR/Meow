@@ -13,6 +13,9 @@ import com.hugo.meow.data.NetworkService
 import com.hugo.meow.model.MeowPicture
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 
@@ -25,7 +28,6 @@ sealed interface MeowUiState {
     object Loading : MeowUiState
 }
 
-
 class MeowViewModel(service: NetworkService, private val database: AppDatabase) : ViewModel() {
     var meowUiState: MeowUiState by mutableStateOf(MeowUiState.Loading)
         private set
@@ -33,13 +35,16 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     var meowPics: List<MeowPicture> by mutableStateOf(emptyList())
         private set
 
-    val loadingStatus = MutableLiveData<String>()
-
     private val myService = service
 
     init {
         meowUiState = MeowUiState.Success
     }
+
+    private val _requestCount = MutableStateFlow(0)
+    val requestCount: StateFlow<Int> = _requestCount.asStateFlow()
+
+
 
     /**
      * 获取图片列表，然后插入数据库
@@ -47,7 +52,7 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     private fun getMeowPhotos() = viewModelScope.async {
         meowUiState = MeowUiState.Loading
         try {
-            val listResult = myService.getMeowPicture(10)
+            val listResult = myService.getMeowPicture(_requestCount.value)
 //            database.imageDao().insertAll(listResult.map { meowPic -> meowPicToImageEntity(meowPic) }) // 插入数据库
             meowUiState = MeowUiState.Success
             val downloadJob = listResult.map { listItem ->
@@ -99,31 +104,11 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     }
 
     /**
-     * 从数据库加载所有图片,透过 [meowPics] 暴露给 UI
+     * 更新请求数量的值
      */
-//    private fun loadAllPhotos() = viewModelScope.async {
-//        viewModelScope.launch {
-//            meowUiState = MeowUiState.Loading
-//            meowUiState = try {
-//
-//                val images = database.imageDao().getAll()
-//                val meowPictures = images.map { imageEntity ->
-//                    MeowPicture(
-//                        id = imageEntity.id,
-//                        path = imageEntity.url,
-//                        width = imageEntity.width,
-//                        height = imageEntity.height
-//                    )
-//                }
-//                Log.d("viewModel", "loadAllPhotos try success")
-//                meowPics = meowPictures
-//                MeowUiState.Success
-//            } catch (e: Exception) {
-//                Log.e("viewModel", "Failed to load photos from database: $e")
-//                MeowUiState.Error
-//            }
-//        }
-//    }
+    fun updateRequestCount(count: Int) {
+        _requestCount.value = count
+    }
 
     fun loadAllPhotosFromLocal() {
         viewModelScope.launch {

@@ -1,6 +1,7 @@
 package com.hugo.meow.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -13,34 +14,64 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarColors
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.hugo.meow.model.MeowPicture
 
 @Composable
 fun MeowApp(meowViewModel: MeowViewModel) {
+    val focusManager = LocalFocusManager.current
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { MarsTopAppBar() }
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            },
+        topBar = { MarsTopAppBar() },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { meowViewModel.getMeowPhotosAndLoadAll() }) {
+                Icon(
+                    imageVector = Icons.Outlined.Refresh,
+                    tint = MaterialTheme.colorScheme.onBackground,
+                    contentDescription = ""
+                )
+            }
+        }
     ) { paddingValues ->
         Surface(
             modifier = Modifier
@@ -63,6 +94,7 @@ fun HomeScreen(
     val meowUiState = viewModel.meowUiState
     val meowPics = viewModel.meowPics
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -70,7 +102,8 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        Column {
+        Column(modifier = Modifier) {
+            RequestCountInput(viewModel)
             Button(onClick = { viewModel.getMeowPhotosAndLoadAll() }) {
                 Text(text = "Refresh")
             }
@@ -140,4 +173,22 @@ fun MarsTopAppBar(modifier: Modifier = Modifier) {
         ),
         modifier = modifier.background(color = Color.Blue)
     )
+}
+
+@Composable
+fun RequestCountInput(viewModel: MeowViewModel) {
+    val requestCount by viewModel.requestCount.collectAsState()
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = { viewModel.updateRequestCount(requestCount + 1) }) {
+            Text(text = "More")
+        }
+        Text(
+            text = requestCount.toString(),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Button(onClick = { viewModel.updateRequestCount(requestCount - 1) }) {
+            Text(text = "Less")
+        }
+    }
 }
