@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -28,7 +29,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,7 +45,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -62,13 +61,13 @@ fun MeowApp(meowViewModel: MeowViewModel) {
                     focusManager.clearFocus()
                 })
             },
-        topBar = { MarsTopAppBar() },
+        topBar = { MeowTopAppBar() },
         floatingActionButton = {
             FloatingActionButton(onClick = { meowViewModel.getMeowPhotosAndLoadAll() }) {
                 Icon(
                     imageVector = Icons.Outlined.Refresh,
-                    tint = MaterialTheme.colorScheme.onBackground,
-                    contentDescription = ""
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    contentDescription = null
                 )
             }
         }
@@ -94,30 +93,31 @@ fun HomeScreen(
     val meowUiState = viewModel.meowUiState
     val meowPics = viewModel.meowPics
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(modifier = Modifier) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             RequestCountInput(viewModel)
-            Button(onClick = { viewModel.getMeowPhotosAndLoadAll() }) {
-                Text(text = "Refresh")
-            }
-            Row() {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = { viewModel.getMeowPhotosAndLoadAll() }) {
+                    Text(text = "Refresh")
+                }
                 Button(onClick = { viewModel.loadAllPhotosFromLocal() }) {
                     Text(text = "Load from Local")
                 }
                 Button(onClick = { viewModel.CleanDatabase() }) {
-                    Text(text = "Clean！！！！")
+                    Text(text = "Clean")
                 }
             }
         }
 
-        // 根据 [meowUiState] 的状态切换不同显示内容
         when (meowUiState) {
             is MeowUiState.Loading -> {
                 CircularProgressIndicator()
@@ -144,14 +144,14 @@ fun HomeScreen(
                                     maxWidth = 150.dp,
                                     minHeight = 130.dp,
                                     maxHeight = 170.dp
-                                ) // 设置大小范围
+                                )
                                 .clip(RoundedCornerShape(12.dp))
                         )
                     }
                 }
             }
             is MeowUiState.Error -> {
-                Text(text = "Error loading data")
+                Text(text = "Error loading data", color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -159,7 +159,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MarsTopAppBar(modifier: Modifier = Modifier) {
+fun MeowTopAppBar(modifier: Modifier = Modifier) {
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -171,7 +171,7 @@ fun MarsTopAppBar(modifier: Modifier = Modifier) {
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary
         ),
-        modifier = modifier.background(color = Color.Blue)
+        modifier = modifier
     )
 }
 
@@ -179,7 +179,11 @@ fun MarsTopAppBar(modifier: Modifier = Modifier) {
 fun RequestCountInput(viewModel: MeowViewModel) {
     val requestCount by viewModel.requestCount.collectAsState()
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
         Button(onClick = { viewModel.updateRequestCount(requestCount + 1) }) {
             Text(text = "More")
         }
