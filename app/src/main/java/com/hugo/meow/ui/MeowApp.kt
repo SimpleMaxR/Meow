@@ -1,5 +1,6 @@
 package com.hugo.meow.ui
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -48,6 +51,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.hugo.imagepreviewer.utils.DownloadRecordDao
+import com.hugo.imagepreviewer.utils.DownloadRecordEntity
 
 @Composable
 fun MeowApp(meowViewModel: MeowViewModel) {
@@ -92,7 +97,11 @@ fun HomeScreen(
 ) {
     val meowUiState = viewModel.meowUiState
     val meowPics = viewModel.meowPics
+    val downloadRecords = viewModel.downloadRecords
 
+    var showDownloadRecords by remember {
+        mutableStateOf(false)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -115,43 +124,54 @@ fun HomeScreen(
                 Button(onClick = { viewModel.CleanDatabase() }) {
                     Text(text = "Clean")
                 }
+
+            }
+            Button(onClick = { showDownloadRecords = !showDownloadRecords }) {
+                Text("Show Downloads")
             }
         }
 
-        when (meowUiState) {
-            is MeowUiState.Loading -> {
-                CircularProgressIndicator()
-            }
-            is MeowUiState.Success -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 100.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(meowPics) { meowPicture ->
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(meowPicture.path)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = meowPicture.id,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .sizeIn(
-                                    minWidth = 100.dp,
-                                    maxWidth = 150.dp,
-                                    minHeight = 130.dp,
-                                    maxHeight = 170.dp
-                                )
-                                .clip(RoundedCornerShape(12.dp))
-                        )
+        if (showDownloadRecords) {
+            DownloadRecordList(downloadRecords)
+            Log.e("app", downloadRecords.toString())
+        } else {
+            when (meowUiState) {
+                is MeowUiState.Loading -> {
+                    CircularProgressIndicator()
+                }
+
+                is MeowUiState.Success -> {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 100.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(meowPics) { meowPicture ->
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(meowPicture.path)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = meowPicture.id,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .sizeIn(
+                                        minWidth = 100.dp,
+                                        maxWidth = 150.dp,
+                                        minHeight = 130.dp,
+                                        maxHeight = 170.dp
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                        }
                     }
                 }
-            }
-            is MeowUiState.Error -> {
-                Text(text = "Error loading data", color = MaterialTheme.colorScheme.error)
+
+                is MeowUiState.Error -> {
+                    Text(text = "Error loading data", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
@@ -193,6 +213,19 @@ fun RequestCountInput(viewModel: MeowViewModel) {
         )
         Button(onClick = { viewModel.updateRequestCount(requestCount - 1) }) {
             Text(text = "Less")
+        }
+    }
+}
+
+@Composable
+fun DownloadRecordList(downloadRecords: List<DownloadRecordEntity>) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(downloadRecords) { record ->
+            Text(text = "ID: ${record.id}`, URL: ${record.url}")
         }
     }
 }

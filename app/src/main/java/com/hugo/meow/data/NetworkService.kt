@@ -2,6 +2,7 @@ package com.hugo.meow.data
 
 import android.util.Log
 import com.hugo.imagepreviewer.utils.AppDatabase
+import com.hugo.imagepreviewer.utils.DownloadRecordEntity
 import com.hugo.meow.model.MeowPicture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

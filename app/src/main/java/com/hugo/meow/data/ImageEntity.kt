@@ -22,7 +22,10 @@ interface DownloadRecordDao {
     suspend fun getAll(): List<DownloadRecordEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(images: List<DownloadRecordEntity>)
+    suspend fun insertAll(download: List<DownloadRecordEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(download: DownloadRecordEntity)
 
     @Query("DELETE From meow_download")
     suspend fun deleteAllSync()

@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
         val database = AppDatabase.getDatabase(this)
         val networkService = NetworkService(database, applicationContext)
         val meowViewModel = MeowViewModel(networkService, database)
+        meowViewModel.loadDownloadRecords()
         setContent {
             MeowTheme {
                 Surface(

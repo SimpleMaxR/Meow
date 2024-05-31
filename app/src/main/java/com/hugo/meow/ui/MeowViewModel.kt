@@ -8,6 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hugo.imagepreviewer.utils.AppDatabase
+import com.hugo.imagepreviewer.utils.DownloadRecordEntity
 import com.hugo.imagepreviewer.utils.LocalImageEntity
 import com.hugo.meow.data.NetworkService
 import com.hugo.meow.model.MeowPicture
@@ -35,6 +36,9 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
     var meowPics: List<MeowPicture> by mutableStateOf(emptyList())
         private set
 
+    var downloadRecords: List<DownloadRecordEntity> by mutableStateOf(emptyList())
+        private set
+
     private val myService = service
 
     init {
@@ -50,19 +54,29 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
      * 获取图片列表，然后插入数据库
      */
     private fun getMeowPhotos() = viewModelScope.async {
+        // 设置状态为 Loading
         meowUiState = MeowUiState.Loading
         try {
             val listResult = myService.getMeowPicture(_requestCount.value)
-//            database.imageDao().insertAll(listResult.map { meowPic -> meowPicToImageEntity(meowPic) }) // 插入数据库
             meowUiState = MeowUiState.Success
+            // 利用 async 创建一个协程任务，并使用 awaitAll 等待所有任务完成
             val downloadJob = listResult.map { listItem ->
                 async {
                     val image = myService.downloadImage(listItem.path, listItem.id)
                     if (image != null) {
+                        // 记录到本地图片数据库和下载记录数据库
                         database.localImageDao().insert(
                             LocalImageEntity(
                                 id = image.name,
                                 path = image.absolutePath,
+                                width = listItem.width,
+                                height = listItem.height
+                            )
+                        )
+                        database.downloadRecordDao().insert(
+                            DownloadRecordEntity(
+                                id = listItem.id,
+                                url = listItem.path,
                                 width = listItem.width,
                                 height = listItem.height
                             )
@@ -143,35 +157,23 @@ class MeowViewModel(service: NetworkService, private val database: AppDatabase) 
      */
     fun getMeowPhotosAndLoadAll() {
         viewModelScope.launch {
-            // 清理现有储存，避免一次请求太多
-            CleanDatabase()
             // 获取图片列表，然后下载到本地，并记录到数据库
             val pictures = getMeowPhotos().await()
+        }
+    }
 
-//            pictures.forEach { picture ->
-//                val file = myService.downloadImage(picture.url, "${picture.id}.jpg")
-//                if (file != null) {
-//                    Log.d("MeowViewModel", "Image downloaded: ${file.absolutePath}")
-//                } else {
-//                    Log.e("MeowViewModel", "Failed to download image: ${picture.url}")
-//                }
-//            }
-
-
-//            // 使用 async 并行下载图片
-//            val asyncDownload = pictures.map{picture ->
-//                async {
-//                    val file = myService.downloadImage(picture.url, "${picture.id}.jpg")
-//                    if (file != null) {
-//                        Log.d("MeowViewModel", "Image downloaded: ${file.absolutePath}")
-//                    } else {
-//                        Log.e("MeowViewModel", "Failed to download image: ${picture.url}")
-//                    }
-//                }
-//            }
-//            asyncDownload.awaitAll()
-
-//            loadAllPhotos().await()
+    /**
+     * 获取数据库中的下载记录
+     */
+    fun loadDownloadRecords() {
+        viewModelScope.launch {
+            try {
+                val records = database.downloadRecordDao().getAll()
+                downloadRecords = records
+                Log.d("viewModel", "Load download record success: $downloadRecords")
+            } catch (e: Exception) {
+                Log.e("viewModel", "Failed to load download records: $e")
+            }
         }
     }
 }
